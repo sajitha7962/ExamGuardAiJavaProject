@@ -52,6 +52,7 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable)
+            .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setContentType("application/json");
@@ -66,10 +67,10 @@ public class SecurityConfig {
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public UI pages & static assets
+                // Public UI pages & static assets & H2 Database Console
                 .requestMatchers(
                     "/", "/*.html", "/css/**", "/js/**", "/images/**", "/favicon.ico",
-                    "/api/auth/**", "/api/public/**", "/ws/**"
+                    "/api/auth/**", "/api/public/**", "/ws/**", "/h2-console/**"
                 ).permitAll()
                 // Role-based API authorization
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
