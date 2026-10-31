@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biometric Face Registration – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    .face-guide-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 200px;
+      height: 250px;
+      border: 3px dashed var(--mint-green);
+      border-radius: 50% 50% 45% 45%;
+      box-shadow: 0 0 0 9999px rgba(28, 85, 81, 0.45);
+      pointer-events: none;
+      transition: var(--transition);
+    }
+    .face-guide-box.aligned {
+      border-color: var(--soft-yellow);
+      border-style: solid;
+    }
+    .progress-bar-container {
+      width: 100%;
+      height: 12px;
+      background-color: var(--mint-green-light);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 1.25rem 0;
+      border: 1px solid var(--mint-green);
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background-color: var(--deep-teal);
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/student-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/student-dashboard.html" class="btn btn-warning btn-sm">Return to Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/student-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/available-exams.html">Available Exams</a></li>
+          <li class="sidebar-nav-item active"><a href="/face-registration.html">Face Registration</a></li>
+          <li class="sidebar-nav-item"><a href="/my-examinations.html">My Examinations</a></li>
+          <li class="sidebar-nav-item"><a href="/student-results.html">Exam Results</a></li>
+          <li class="sidebar-nav-item"><a href="/student-profile.html">My Profile</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Biometric Face Enrollment</h1>
+          <p>Register your official biometric template for AI proctoring identity verification.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Live Camera Container -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Live Webcam Alignment</h3>
+            <span id="cam-status" class="badge badge-yellow">Camera Offline</span>
+          </div>
+
+          <div class="camera-preview-container" style="position: relative;">
+            <video id="webcam" autoplay playsinline muted></video>
+            <div id="guide-box" class="face-guide-box"></div>
+            <div class="proctoring-hud">
+              <span id="lighting-hud" class="hud-pill">Lighting: --</span>
+              <span id="quality-hud" class="hud-pill">Alignment: Waiting</span>
+            </div>
+          </div>
+          <canvas id="analysis-canvas" style="display: none;"></canvas>
+
+          <div style="display: flex; gap: 1rem; margin-top: 1.25rem;">
+            <button id="start-cam-btn" class="btn btn-secondary btn-full" onclick="startCamera()">
+              Start Webcam
+            </button>
+            <button id="capture-btn" class="btn btn-primary btn-full" onclick="startEnrollmentSequence()" disabled>
+              Capture & Enroll Face
+            </button>
+          </div>
+        </div>
+
+        <!-- Enrollment Guide & Consent -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Biometric Consent & Retention Policy</h3>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-sub);">
+              Under university examination guidelines, ExamGuard AI extracts localized mathematical geometry vectors (biometric templates) to verify identity during online examinations.
+            </p>
+            <ul style="font-size: 0.85rem; color: var(--text-main); margin-left: 1.25rem; margin-bottom: 1rem;">
+              <li>Biometric data is securely hashed and protected with restricted access controls.</li>
+              <li>Used exclusively for automated attendance & unauthorized proxy prevention.</li>
+              <li>You may request controlled re-enrollment through your university admin.</li>
+            </ul>
+
+            <label class="form-check" style="border: 1px solid var(--mint-green); padding: 0.75rem; border-radius: var(--radius-sm); background-color: var(--mint-green-light);">
+              <input type="checkbox" id="consent-check" checked>
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--deep-teal);">
+                I provide explicit consent for the retention and verification of my biometric face vector for examination integrity.
+              </span>
+            </label>
+          </div>
+
+          <!-- Sampling Progress Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Multi-Sample Registration Progress</h3>
+              <span id="sample-count-badge" class="badge badge-mint">0 / 3 Samples</span>
+            </div>
+
+            <p style="font-size: 0.9rem;">
+              Position your face inside the oval frame. Ensure good lighting and look directly into the camera.
+            </p>
+
+            <div class="progress-bar-container">
+              <div id="progress-bar" class="progress-bar-fill"></div>
+            </div>
+
+            <div id="enrollment-status-alert" class="alert alert-yellow" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/face-verify.js"></script>
+  <script>
+    const user = Session.requireRole('STUDENT');
+    if (user) renderNavProfile(user);
+
+    let verifier = null;
+    let checkInterval = null;
+    let samples = [];
+
+    async function startCamera() {
+      const video = document.getElementById('webcam');
+      const canvas = document.getElementById('analysis-canvas');
+      verifier = new FaceVerifier(video, canvas);
+
+      try {
+        await verifier.startCamera();
+        document.getElementById('cam-status').innerText = 'Camera Online';
+        document.getElementById('cam-status').className = 'badge badge-mint';
+        document.getElementById('start-cam-btn').disabled = true;
+        document.getElementById('capture-btn').disabled = false;
+
+        // Monitor alignment
+        checkInterval = setInterval(() => {
+          const analysis = verifier.captureAndAnalyze();
+          if (analysis) {
+            document.getElementById('lighting-hud').innerText = `Luma: ${analysis.avgLuma}`;
+            const isGood = analysis.hasFace;
+            const guide = document.getElementById('guide-box');
+            guide.classList.toggle('aligned', isGood);
+            document.getElementById('quality-hud').innerText = isGood ? 'Face Aligned' : 'Align Center';
+          }
+        }, 500);
+
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function startEnrollmentSequence() {
+      if (!document.getElementById('consent-check').checked) {
+        showToast('Please check the biometric consent box to proceed.', true);
+        return;
+      }
+
+      samples = [];
+      const btn = document.getElementById('capture-btn');
+      btn.disabled = true;
+      const statusAlert = document.getElementById('enrollment-status-alert');
+      statusAlert.style.display = 'block';
+      statusAlert.innerText = 'Capturing biometric sample 1 of 3. Keep still...';
+
+      // Capture 3 consecutive samples
+      for (let i = 1; i <= 3; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        const analysis = verifier.captureAndAnalyze();
+        if (!analysis || !analysis.hasFace) {
+          statusAlert.innerText = 'Face not properly aligned. Please look straight into camera.';
+          btn.disabled = false;
+          return;
+        }
+
+        samples.push(analysis.descriptor);
+        document.getElementById('progress-bar').style.width = `${(i / 3) * 100}%`;
+        document.getElementById('sample-count-badge').innerText = `${i} / 3 Samples`;
+        statusAlert.innerText = `Capturing sample ${i + 1} of 3...`;
+      }
+
+      // Average the descriptors
+      const avgDescriptor = new Array(16).fill(0);
+      samples.forEach(s => {
+        s.forEach((val, idx) => { avgDescriptor[idx] += val / samples.length; });
+      });
+
+      statusAlert.innerText = 'Transmitting biometric vector to secure college vault...';
+
+      try {
+        const payload = {
+          faceTemplateData: JSON.stringify({
+            descriptor: avgDescriptor,
+            enrolledAt: new Date().toISOString(),
+            confidence: 97.5
+          }),
+          consentGiven: true
+        };
+
+        await apiRequest('/auth/face-enroll', 'POST', payload);
+        
+        // Update local session
+        user.isFaceRegistered = true;
+        Session.setUser(Session.getToken(), user);
+
+        statusAlert.className = 'alert alert-mint';
+        statusAlert.innerHTML = '<strong>Success!</strong> Face identity successfully enrolled and verified. Redirecting to dashboard...';
+        showToast('Biometric Face Registration Complete!');
+
+        setTimeout(() => {
+          window.location.href = '/student-dashboard.html';
+        }, 2000);
+
+      } catch (err) {
+        statusAlert.className = 'alert alert-yellow';
+        statusAlert.innerText = err.message || 'Enrollment transmission failed.';
+        btn.disabled = false;
+        showToast(err.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

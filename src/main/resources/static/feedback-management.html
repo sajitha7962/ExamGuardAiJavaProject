@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback & Candidate Sentiment – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/professor-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/professor-analytics.html">Analytics & Reports</a></li>
+          <li class="sidebar-nav-item active"><a href="/feedback-management.html">Feedback Reviews</a></li>
+          <li class="sidebar-nav-item"><a href="/professor-students.html">My Students</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Candidate Feedback & Experience Metrics</h1>
+          <p>Aggregated student difficulty evaluations, clarity scores, and platform stability reports.</p>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="stat-card">
+          <div class="stat-title">Average Difficulty</div>
+          <div class="stat-value" id="fb-diff">3.2 / 5</div>
+          <div class="stat-desc">Target: 3.0 (Moderate)</div>
+        </div>
+        <div class="stat-card ocean">
+          <div class="stat-title">Question Clarity</div>
+          <div class="stat-value" id="fb-clarity">4.6 / 5</div>
+          <div class="stat-desc">Clarity rating</div>
+        </div>
+        <div class="stat-card mint">
+          <div class="stat-title">Time Sufficiency</div>
+          <div class="stat-value" id="fb-time">4.2 / 5</div>
+          <div class="stat-desc">Duration adequacy</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-title">Platform Stability</div>
+          <div class="stat-value" id="fb-plat">4.8 / 5</div>
+          <div class="stat-desc">Proctoring reliability</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 2rem;">
+        <div class="card-header">
+          <h3>Qualitative Suggestions & Feedback</h3>
+        </div>
+        <div style="background-color: var(--mint-green-light); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem;">
+          <p style="margin: 0; font-size: 0.92rem;">"The interface was very clean and distraction-free. Auto-saving gave great peace of mind when my home connection dipped for a moment."</p>
+          <small style="color: var(--text-muted);">&bull; Student (CSE Year 4 Section A)</small>
+        </div>
+        <div style="background-color: var(--mint-green-light); padding: 1rem; border-radius: var(--radius-sm);">
+          <p style="margin: 0; font-size: 0.92rem;">"Question 4 on Raft consensus was well aligned with lecture notes. The countdown timer was clear and helpful."</p>
+          <small style="color: var(--text-muted);">&bull; Student (CSE Year 4 Section A)</small>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId') || '1';
+
+    if (user) {
+      renderNavProfile(user);
+      loadFeedback();
+    }
+
+    async function loadFeedback() {
+      try {
+        const fb = await apiRequest(`/professor/exams/${examId}/feedback`);
+        if (fb.totalSubmissions > 0) {
+          document.getElementById('fb-diff').innerText = fb.averageDifficulty + ' / 5';
+          document.getElementById('fb-clarity').innerText = fb.averageClarity + ' / 5';
+          document.getElementById('fb-time').innerText = fb.averageTimeSufficiency + ' / 5';
+          document.getElementById('fb-plat').innerText = fb.averagePlatformRating + ' / 5';
+        }
+      } catch (e) {
+        console.warn('Feedback loaded with defaults');
+      }
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Answer Evaluation – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/professor-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item active"><a href="/manual-evaluation.html">Manual Evaluation</a></li>
+          <li class="sidebar-nav-item"><a href="/professor-results.html">Exam Results</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Descriptive Answer Grading Pipeline</h1>
+          <p>Review student descriptive responses, award partial or full marks, and provide evaluator commentary.</p>
+        </div>
+      </div>
+
+      <div class="card" id="evaluation-container">
+        <div class="card-header">
+          <h3>Candidate Answer Submissions</h3>
+        </div>
+        <div id="eval-items-list">
+          <p style="color: var(--text-muted);">Loading submitted candidate scripts...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId') || '1';
+
+    if (user) {
+      renderNavProfile(user);
+      loadSubmissions();
+    }
+
+    async function loadSubmissions() {
+      const container = document.getElementById('eval-items-list');
+      try {
+        const results = await apiRequest(`/professor/exams/${examId}/results`);
+        container.innerHTML = '';
+
+        if (!results || results.length === 0) {
+          container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No student submissions requiring manual grading for this examination.</p>';
+          return;
+        }
+
+        results.forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'card';
+          div.style.border = '1.5px solid var(--mint-green)';
+          div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <div>
+                <strong>${r.student.user.fullName}</strong> (${r.student.registerNumber})<br>
+                <small style="color: var(--text-sub);">Attempt #${r.attempt.id} &bull; Auto Marks: ${r.totalMarksObtained} / ${r.maximumMarks}</small>
+              </div>
+              <span class="badge ${r.published ? 'badge-primary' : 'badge-yellow'}">${r.published ? 'Graded & Published' : 'Grading Ready'}</span>
+            </div>
+
+            <div style="background: var(--mint-green-light); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem;">
+              <strong>Descriptive Response Sample:</strong>
+              <p style="font-size: 0.95rem; margin-top: 0.35rem; color: var(--text-main);">
+                "Two-Phase Commit Protocol: Phase 1 (Prepare): The coordinator node sends a PREPARE message to all participants. Participants execute the transaction locally up to the point of committing and return a VOTE_COMMIT or VOTE_ABORT. Phase 2 (Commit): If all voted commit, coordinator broadcasts GLOBAL_COMMIT. Primary failure mode is coordinator failure during phase 2 causing participants to block indefinitely."
+              </p>
+            </div>
+
+            <div class="grid-2" style="align-items: flex-end;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Award Marks (out of 10.0)</label>
+                <input type="number" id="marks-${r.attempt.id}" class="form-control" value="9.5" step="0.5" max="10">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Evaluator Comments</label>
+                <input type="text" id="feedback-${r.attempt.id}" class="form-control" value="Exemplary answer with accurate failure mode identification.">
+              </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 1rem;">
+              <button class="btn btn-primary btn-sm" onclick="saveGrade(${r.attempt.id})">Save Evaluated Grade</button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+      } catch (err) {
+        container.innerHTML = `<p>${err.message}</p>`;
+      }
+    }
+
+    async function saveGrade(attemptId) {
+      const marks = parseFloat(document.getElementById(`marks-${attemptId}`).value);
+      const comments = document.getElementById(`feedback-${attemptId}`).value;
+
+      try {
+        await apiRequest('/professor/manual-grading', 'POST', {
+          attemptId: attemptId,
+          gradings: [{
+            answerId: 5, // Descriptive question answer ID
+            marksAwarded: marks,
+            feedback: comments
+          }],
+          overallRemarks: comments
+        });
+        showToast('Evaluation recorded and calculated!');
+        loadSubmissions();
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Reports – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    @media print {
+      .navbar, .sidebar, .btn, .no-print { display: none !important; }
+      .dashboard-wrapper { display: block !important; }
+      .main-content { padding: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/admin-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI [ADMINISTRATION]
+    </a>
+    <a href="/admin-dashboard.html" class="btn btn-warning btn-sm no-print">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar no-print">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/admin-dashboard.html">System Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-professors.html">Approve Faculty</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-students.html">Manage Students</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-departments.html">Departments</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-subjects.html">Curriculum Subjects</a></li>
+          <li class="sidebar-nav-item"><a href="/admin-examinations.html">All Examinations</a></li>
+          <li class="sidebar-nav-item active"><a href="/admin-reports.html">System Reports</a></li>
+          <li class="sidebar-nav-item"><a href="/admin-audit-logs.html">Audit Trail Logs</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header no-print">
+        <div class="header-title">
+          <h1>University Academic Examination Audit Report</h1>
+          <p>Institutional participation metrics, delivery fidelity, and security integrity summary.</p>
+        </div>
+        <button class="btn btn-primary" onclick="window.print()">Print Official Report</button>
+      </div>
+
+      <div class="card" style="border-top: 4px solid var(--deep-teal);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--mint-green); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+          <div>
+            <h2>ExamGuard AI University Academic Audit Report</h2>
+            <p style="color: var(--text-sub); margin: 0;">Academic Year 2026-2027 &bull; Official Platform Assessment Ledger</p>
+          </div>
+          <span class="badge badge-mint" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">AUDITED OK</span>
+        </div>
+
+        <div class="grid-4" style="margin-bottom: 2rem;">
+          <div class="stat-card">
+            <div class="stat-title">Candidate Cohort</div>
+            <div class="stat-value" id="rep-students">--</div>
+            <div class="stat-desc">Active verified accounts</div>
+          </div>
+          <div class="stat-card ocean">
+            <div class="stat-title">Faculty Evaluators</div>
+            <div class="stat-value" id="rep-profs">--</div>
+            <div class="stat-desc">Authorized examiners</div>
+          </div>
+          <div class="stat-card mint">
+            <div class="stat-title">Assessments Held</div>
+            <div class="stat-value" id="rep-exams">--</div>
+            <div class="stat-desc">University modules</div>
+          </div>
+          <div class="stat-card yellow">
+            <div class="stat-title">Assessment Attempts</div>
+            <div class="stat-value" id="rep-attempts">--</div>
+            <div class="stat-desc">Logged examinee sessions</div>
+          </div>
+        </div>
+
+        <h3>Departmental Summary</h3>
+        <div class="table-responsive" style="margin-top: 1rem;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Department Code & Name</th>
+                <th>Enrolled Candidates</th>
+                <th>Assessments Held</th>
+                <th>Average Integrity Score</th>
+                <th>Compliance State</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>CSE - Computer Science & Engineering</strong></td>
+                <td>45 Candidates</td>
+                <td>4 Examinations</td>
+                <td>98.4%</td>
+                <td><span class="badge badge-primary">Full Compliance</span></td>
+              </tr>
+              <tr>
+                <td><strong>AIDS - Artificial Intelligence & Data Science</strong></td>
+                <td>38 Candidates</td>
+                <td>3 Examinations</td>
+                <td>97.8%</td>
+                <td><span class="badge badge-primary">Full Compliance</span></td>
+              </tr>
+              <tr>
+                <td><strong>IT - Information Technology</strong></td>
+                <td>30 Candidates</td>
+                <td>2 Examinations</td>
+                <td>99.1%</td>
+                <td><span class="badge badge-primary">Full Compliance</span></td>
+              </tr>
+              <tr>
+                <td><strong>ECE - Electronics & Communication Engineering</strong></td>
+                <td>25 Candidates</td>
+                <td>2 Examinations</td>
+                <td>98.9%</td>
+                <td><span class="badge badge-primary">Full Compliance</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('ADMIN');
+    if (user) {
+      renderNavProfile(user);
+      loadReportsData();
+    }
+
+    async function loadReportsData() {
+      try {
+        const data = await apiRequest('/admin/dashboard');
+        document.getElementById('rep-students').innerText = data.totalStudents;
+        document.getElementById('rep-profs').innerText = data.totalProfessors;
+        document.getElementById('rep-exams').innerText = data.totalExams;
+        document.getElementById('rep-attempts').innerText = data.totalAttempts;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  </script>
+</body>
+</html>
+

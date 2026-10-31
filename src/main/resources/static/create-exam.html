@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Examination Wizard – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    .wizard-steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--mint-green);
+      padding-bottom: 1rem;
+    }
+    .wizard-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .wizard-step.active {
+      color: var(--deep-teal);
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: var(--mint-green-light);
+      border: 1.5px solid var(--mint-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+    .wizard-step.active .step-num {
+      background-color: var(--deep-teal);
+      color: #ffffff;
+      border-color: var(--deep-teal);
+    }
+    .step-content {
+      display: none;
+    }
+    .step-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/manage-exams.html" class="btn btn-warning btn-sm">Exit Wizard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item active"><a href="/create-exam.html">Create Examination</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/question-bank.html">Question Bank</a></li>
+          <li class="sidebar-nav-item"><a href="/live-monitoring.html">Live Monitoring</a></li>
+          <li class="sidebar-nav-item"><a href="/proctoring-review.html">Proctoring Review</a></li>
+          <li class="sidebar-nav-item"><a href="/manual-evaluation.html">Manual Evaluation</a></li>
+          <li class="sidebar-nav-item"><a href="/professor-results.html">Exam Results</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Examination Authoring Wizard</h1>
+          <p>Multi-step configuration of syllabus, candidate eligibility, questions, and AI proctoring parameters.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <!-- Wizard Navigation Steps -->
+        <div class="wizard-steps">
+          <div class="wizard-step active" id="tab-1" onclick="goToStep(1)">
+            <span class="step-num">1</span> Basic Details
+          </div>
+          <div class="wizard-step" id="tab-2" onclick="goToStep(2)">
+            <span class="step-num">2</span> Eligibility
+          </div>
+          <div class="wizard-step" id="tab-3" onclick="goToStep(3)">
+            <span class="step-num">3</span> Questions
+          </div>
+          <div class="wizard-step" id="tab-4" onclick="goToStep(4)">
+            <span class="step-num">4</span> Settings & Proctoring
+          </div>
+          <div class="wizard-step" id="tab-5" onclick="goToStep(5)">
+            <span class="step-num">5</span> Preview & Publish
+          </div>
+        </div>
+
+        <form id="wizard-form">
+          <!-- STEP 1: Basic Details -->
+          <div class="step-content active" id="step-1">
+            <h3 style="margin-bottom: 1.25rem;">Step 1: Course & Examination Overview</h3>
+            
+            <div class="form-group">
+              <label class="form-label" for="exam-title">Examination Title</label>
+              <input type="text" id="exam-title" class="form-control" placeholder="e.g. Distributed Systems End-Semester Final 2026" required>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label" for="subject-select">Subject</label>
+                <select id="subject-select" class="form-control" required></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dept-select">Department</label>
+                <select id="dept-select" class="form-control" required></select>
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label class="form-label" for="exam-date">Date</label>
+                <input type="date" id="exam-date" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="start-time">Start Time</label>
+                <input type="time" id="start-time" class="form-control" value="09:00" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="end-time">End Time</label>
+                <input type="time" id="end-time" class="form-control" value="12:00" required>
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label class="form-label" for="duration">Duration (Minutes)</label>
+                <input type="number" id="duration" class="form-control" value="60" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="total-marks">Total Marks</label>
+                <input type="number" id="total-marks" class="form-control" value="100" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="passing-marks">Passing Marks</label>
+                <input type="number" id="passing-marks" class="form-control" value="40" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="instructions">Candidate Instructions</label>
+              <textarea id="instructions" class="form-control" rows="3">1. Webcam and fullscreen mode are required.
+2. Tab switches and minimization are tracked by AI proctoring.
+3. Every answer is auto-saved in real time.</textarea>
+            </div>
+
+            <div style="text-align: right; margin-top: 1.5rem;">
+              <button type="button" class="btn btn-primary" onclick="goToStep(2)">Proceed to Eligibility &rarr;</button>
+            </div>
+          </div>
+
+          <!-- STEP 2: Eligibility -->
+          <div class="step-content" id="step-2">
+            <h3 style="margin-bottom: 1.25rem;">Step 2: Student Cohort & Eligibility</h3>
+            <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 1.5rem;">Select student cohorts eligible to take this examination.</p>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label class="form-label">Target Academic Year</label>
+                <select id="target-year" class="form-control">
+                  <option value="">All Years</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4" selected>4th Year</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Section</label>
+                <select id="target-section" class="form-control">
+                  <option value="">All Sections</option>
+                  <option value="A" selected>Section A</option>
+                  <option value="B">Section B</option>
+                  <option value="C">Section C</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cohort Verification</label>
+                <div style="padding: 0.65rem; background: var(--mint-green-light); border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--deep-teal);">
+                  ✔ Auto-enrolls active students in department
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+              <button type="button" class="btn btn-outline" onclick="goToStep(1)">&larr; Back</button>
+              <button type="button" class="btn btn-primary" onclick="goToStep(3)">Configure Questions &rarr;</button>
+            </div>
+          </div>
+
+          <!-- STEP 3: Question Configuration -->
+          <div class="step-content" id="step-3">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+              <h3>Step 3: Select Examination Questions</h3>
+              <a href="/question-bank.html" target="_blank" class="btn btn-outline btn-sm">+ Add New to Question Bank</a>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;">Select</th>
+                    <th>Question Text</th>
+                    <th>Type</th>
+                    <th>Difficulty</th>
+                    <th>Marks</th>
+                  </tr>
+                </thead>
+                <tbody id="questions-selection-tbody">
+                  <tr><td colspan="5" style="text-align: center;">Loading question bank...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+              <button type="button" class="btn btn-outline" onclick="goToStep(2)">&larr; Back</button>
+              <button type="button" class="btn btn-primary" onclick="goToStep(4)">Proctoring Settings &rarr;</button>
+            </div>
+          </div>
+
+          <!-- STEP 4: Settings & Proctoring -->
+          <div class="step-content" id="step-4">
+            <h3 style="margin-bottom: 1.25rem;">Step 4: Examination Settings & AI Proctoring Configuration</h3>
+
+            <div class="grid-2">
+              <div class="card" style="background: var(--bg-page);">
+                <h4 style="margin-bottom: 1rem;">Assessment Navigation & Timing</h4>
+                <label class="form-check">
+                  <input type="checkbox" id="allowBackNav" checked>
+                  <span>Allow Back Navigation between questions</span>
+                </label>
+                <label class="form-check">
+                  <input type="checkbox" id="allowReview" checked>
+                  <span>Allow "Mark for Review" feature</span>
+                </label>
+                <label class="form-check">
+                  <input type="checkbox" id="autoSubmit" checked>
+                  <span>Automatic submission when deadline expires</span>
+                </label>
+                <label class="form-check">
+                  <input type="checkbox" id="allowLateEntry" checked>
+                  <span>Permit student late entry requests with approval</span>
+                </label>
+                <div class="form-group" style="margin-top: 1rem;">
+                  <label class="form-label" for="entryWindow">Entry Window (Minutes)</label>
+                  <input type="number" id="entryWindow" class="form-control" value="15">
+                </div>
+              </div>
+
+              <div class="card" style="background: var(--bg-page);">
+                <h4 style="margin-bottom: 1rem;">AI Proctoring Integrity Controls</h4>
+                <label class="form-check">
+                  <input type="checkbox" id="faceVerificationEnabled" checked>
+                  <span>Biometric face verification prior to entry</span>
+                </label>
+                <label class="form-check">
+                  <input type="checkbox" id="continuousWebcamMonitoring" checked>
+                  <span>Continuous live webcam proctoring stream</span>
+                </label>
+                <label class="form-check">
+                  <input type="checkbox" id="tabSwitchDetection" checked>
+                  <span>Page Visibility API tab-switch detection</span>
+                </label>
+                <label class="form-check">
+                  <input type="checkbox" id="fullscreenMonitoring" checked>
+                  <span>Enforce and monitor Fullscreen mode</span>
+                </label>
+                <label class="form-check">
+                  <input type="checkbox" id="autoSubmitOnViolations">
+                  <span>Auto-terminate examination on repeated violations</span>
+                </label>
+                <div class="form-group" style="margin-top: 1rem;">
+                  <label class="form-label" for="maxWarnings">Maximum Allowed Warnings</label>
+                  <input type="number" id="maxWarnings" class="form-control" value="5">
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+              <button type="button" class="btn btn-outline" onclick="goToStep(3)">&larr; Back</button>
+              <button type="button" class="btn btn-primary" onclick="goToStep(5)">Review & Finalize &rarr;</button>
+            </div>
+          </div>
+
+          <!-- STEP 5: Preview & Publish -->
+          <div class="step-content" id="step-5">
+            <h3 style="margin-bottom: 1.25rem;">Step 5: Question Paper Preview & Publication</h3>
+
+            <div class="card mint" style="background: var(--mint-green-light); margin-bottom: 1.5rem;">
+              <h4 id="preview-title" style="margin-bottom: 0.5rem;">Exam Title</h4>
+              <p id="preview-summary" style="margin: 0; color: var(--text-sub);">Summary...</p>
+            </div>
+
+            <div id="preview-questions-list"></div>
+
+            <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+              <button type="button" class="btn btn-outline" onclick="goToStep(4)">&larr; Back</button>
+              <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="saveExamination('DRAFT')">Save as Draft</button>
+                <button type="button" class="btn btn-primary" onclick="saveExamination('PUBLISHED')">Publish Examination</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    if (user) {
+      renderNavProfile(user);
+      initWizardData();
+    }
+
+    let availableQuestions = [];
+
+    async function initWizardData() {
+      // Set default date to today
+      document.getElementById('exam-date').value = new Date().toISOString().split('T')[0];
+
+      // Load departments
+      const depts = await apiRequest('/public/departments');
+      const deptSel = document.getElementById('dept-select');
+      depts.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.innerText = `${d.code} - ${d.name}`;
+        deptSel.appendChild(opt);
+      });
+
+      // Load subjects
+      const subs = await apiRequest('/public/subjects');
+      const subSel = document.getElementById('subject-select');
+      subs.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.innerText = `${s.code} - ${s.name}`;
+        subSel.appendChild(opt);
+      });
+
+      // Load Question Bank
+      try {
+        availableQuestions = await apiRequest('/professor/questions');
+        const qTbody = document.getElementById('questions-selection-tbody');
+        qTbody.innerHTML = '';
+
+        if (!availableQuestions || availableQuestions.length === 0) {
+          qTbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No questions in question bank. Please add some first.</td></tr>';
+          return;
+        }
+
+        availableQuestions.forEach(q => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><input type="checkbox" class="q-checkbox" value="${q.id}" checked></td>
+            <td><strong>${q.questionText}</strong></td>
+            <td><span class="badge badge-mint">${q.questionType}</span></td>
+            <td><span class="badge badge-yellow">${q.difficultyLevel}</span></td>
+            <td>${q.marks}</td>
+          `;
+          qTbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function goToStep(step) {
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById(`tab-${i}`).classList.toggle('active', i === step);
+        document.getElementById(`step-${i}`).classList.toggle('active', i === step);
+      }
+
+      if (step === 5) {
+        // Render preview
+        document.getElementById('preview-title').innerText = document.getElementById('exam-title').value || 'Untitled Examination';
+        document.getElementById('preview-summary').innerText = `Date: ${document.getElementById('exam-date').value} | Duration: ${document.getElementById('duration').value} Mins | Total Marks: ${document.getElementById('total-marks').value}`;
+
+        const qList = document.getElementById('preview-questions-list');
+        qList.innerHTML = '';
+        const selectedCheckboxes = document.querySelectorAll('.q-checkbox:checked');
+        selectedCheckboxes.forEach((cb, idx) => {
+          const q = availableQuestions.find(x => x.id == cb.value);
+          if (q) {
+            const div = document.createElement('div');
+            div.style.padding = '0.75rem 0';
+            div.style.borderBottom = '1px solid var(--mint-green)';
+            div.innerHTML = `<strong>Q${idx + 1} (${q.marks} pts):</strong> ${q.questionText}`;
+            qList.appendChild(div);
+          }
+        });
+      }
+    }
+
+    async function saveExamination(status) {
+      if (!user.isApproved && status === 'PUBLISHED') {
+        showToast('Your professor account is pending admin approval. You can only save as Draft.', true);
+        return;
+      }
+
+      const selectedQIds = Array.from(document.querySelectorAll('.q-checkbox:checked')).map(cb => parseInt(cb.value));
+
+      const payload = {
+        title: document.getElementById('exam-title').value.trim() || 'Midterm Assessment',
+        subjectId: parseInt(document.getElementById('subject-select').value),
+        departmentId: parseInt(document.getElementById('dept-select').value),
+        examDate: document.getElementById('exam-date').value,
+        startTime: document.getElementById('start-time').value + ':00',
+        endTime: document.getElementById('end-time').value + ':00',
+        durationMinutes: parseInt(document.getElementById('duration').value),
+        totalMarks: parseFloat(document.getElementById('total-marks').value),
+        passingMarks: parseFloat(document.getElementById('passing-marks').value),
+        instructions: document.getElementById('instructions').value,
+        status: status,
+        questionIds: selectedQIds,
+        eligibilityList: [{
+          departmentId: parseInt(document.getElementById('dept-select').value),
+          targetYear: parseInt(document.getElementById('target-year').value) || null,
+          targetSection: document.getElementById('target-section').value || null,
+          isExcluded: false
+        }],
+        settings: {
+          allowBackNav: document.getElementById('allowBackNav').checked,
+          allowReview: document.getElementById('allowReview').checked,
+          autoSubmit: document.getElementById('autoSubmit').checked,
+          allowLateEntry: document.getElementById('allowLateEntry').checked,
+          entryWindowMinutes: parseInt(document.getElementById('entryWindow').value),
+          faceVerificationEnabled: document.getElementById('faceVerificationEnabled').checked,
+          continuousWebcamMonitoring: document.getElementById('continuousWebcamMonitoring').checked,
+          tabSwitchDetection: document.getElementById('tabSwitchDetection').checked,
+          fullscreenMonitoring: document.getElementById('fullscreenMonitoring').checked,
+          autoSubmitOnViolations: document.getElementById('autoSubmitOnViolations').checked,
+          maxWarnings: parseInt(document.getElementById('maxWarnings').value)
+        }
+      };
+
+      try {
+        await apiRequest('/professor/exams', 'POST', payload);
+        showToast(`Examination saved as ${status}!`);
+        setTimeout(() => window.location.href = '/manage-exams.html', 1500);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

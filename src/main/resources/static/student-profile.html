@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Profile – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/student-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/student-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/student-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/available-exams.html">Available Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/face-registration.html">Face Registration</a></li>
+          <li class="sidebar-nav-item"><a href="/my-examinations.html">My Examinations</a></li>
+          <li class="sidebar-nav-item"><a href="/student-results.html">Exam Results</a></li>
+          <li class="sidebar-nav-item active"><a href="/student-profile.html">My Profile</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Student Academic Profile</h1>
+          <p>Verified university identification and security credentials.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Profile Info -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Institutional Details</h3>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.95rem;">
+            <div><strong>Full Legal Name:</strong> <span id="prof-name">--</span></div>
+            <div><strong>Register Number:</strong> <span id="prof-reg">--</span></div>
+            <div><strong>College Email:</strong> <span id="prof-email">--</span></div>
+            <div><strong>Department:</strong> <span id="prof-dept">--</span></div>
+            <div><strong>Class Year & Section:</strong> <span id="prof-class">--</span></div>
+            <div><strong>Biometric Face Status:</strong> <span id="prof-face" class="badge badge-mint">Enrolled</span></div>
+          </div>
+        </div>
+
+        <!-- Password Change -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Change Portal Password</h3>
+          </div>
+          <form id="pwd-form">
+            <div class="form-group">
+              <label class="form-label" for="cur-pwd">Current Password</label>
+              <input type="password" id="cur-pwd" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="new-pwd">New Password</label>
+              <input type="password" id="new-pwd" class="form-control" minlength="6" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('STUDENT');
+    if (user) {
+      renderNavProfile(user);
+      loadProfile();
+    }
+
+    async function loadProfile() {
+      try {
+        const student = await apiRequest('/student/profile');
+        document.getElementById('prof-name').innerText = student.user.fullName;
+        document.getElementById('prof-reg').innerText = student.registerNumber;
+        document.getElementById('prof-email').innerText = student.user.email;
+        document.getElementById('prof-dept').innerText = `${student.department.name} (${student.department.code})`;
+        document.getElementById('prof-class').innerText = `Year ${student.currentYear}, Section ${student.section}`;
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+
+    document.getElementById('pwd-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await apiRequest('/auth/change-password', 'POST', {
+          currentPassword: document.getElementById('cur-pwd').value,
+          newPassword: document.getElementById('new-pwd').value
+        });
+        showToast('Password updated successfully!');
+        document.getElementById('pwd-form').reset();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+  </script>
+</body>
+</html>
+

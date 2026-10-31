@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class Results & Rankings – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/professor-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/live-monitoring.html">Live Monitoring</a></li>
+          <li class="sidebar-nav-item"><a href="/manual-evaluation.html">Manual Evaluation</a></li>
+          <li class="sidebar-nav-item active"><a href="/professor-results.html">Exam Results</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Examination Results & Official Rankings</h1>
+          <p>Review student scorecards, class ranking distributions, and release grades to candidate portals.</p>
+        </div>
+        <button id="publish-results-btn" class="btn btn-primary" onclick="publishClassResults()">
+          Publish Results to Students
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Candidate Name</th>
+                <th>Register No</th>
+                <th>Marks Obtained</th>
+                <th>Percentage</th>
+                <th>Letter Grade</th>
+                <th>Status</th>
+                <th>Publication Status</th>
+              </tr>
+            </thead>
+            <tbody id="results-table-body">
+              <tr><td colspan="8" style="text-align: center;">Loading examination results...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId') || '1';
+
+    if (user) {
+      renderNavProfile(user);
+      loadClassResults();
+    }
+
+    async function loadClassResults() {
+      const tbody = document.getElementById('results-table-body');
+      try {
+        const results = await apiRequest(`/professor/exams/${examId}/results`);
+        tbody.innerHTML = '';
+
+        if (!results || results.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No candidate results compiled yet for this examination.</td></tr>';
+          return;
+        }
+
+        results.forEach((r, idx) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>#${r.classRank || idx + 1}</strong></td>
+            <td><strong>${r.student.user.fullName}</strong></td>
+            <td><code>${r.student.registerNumber}</code></td>
+            <td><strong>${r.totalMarksObtained}</strong> / ${r.maximumMarks}</td>
+            <td>${r.percentage}%</td>
+            <td><span class="badge badge-mint">${r.grade}</span></td>
+            <td><span class="badge ${r.passFailStatus === 'PASS' ? 'badge-primary' : 'badge-yellow'}">${r.passFailStatus}</span></td>
+            <td><span class="badge ${r.published ? 'badge-primary' : 'badge-yellow'}">${r.published ? 'Published' : 'Unpublished Draft'}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8">${e.message}</td></tr>`;
+      }
+    }
+
+    async function publishClassResults() {
+      if (!confirm('Publish results to all candidate portals? Students will receive instant notification.')) return;
+      try {
+        await apiRequest(`/professor/exams/${examId}/publish-results`, 'POST');
+        showToast('Results published and sent to student portals!');
+        loadClassResults();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor Registration – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    .auth-container {
+      max-width: 600px;
+      margin: 3rem auto;
+      padding: 0 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <a href="/index.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <ul class="nav-menu">
+      <li><a href="/index.html" class="nav-link">Home</a></li>
+      <li><a href="/login.html" class="nav-link">Sign In</a></li>
+    </ul>
+  </nav>
+
+  <div class="auth-container">
+    <div class="card" style="box-shadow: var(--shadow-hover);">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <span class="badge badge-mint" style="margin-bottom: 0.5rem;">FACULTY ONBOARDING</span>
+        <h2>Faculty Registration</h2>
+        <p style="color: var(--text-sub); font-size: 0.9rem;">Register as an examination evaluator and supervisor</p>
+      </div>
+
+      <div class="alert alert-yellow">
+        <strong>Notice:</strong> Faculty accounts require administrator approval before creating or publishing examinations.
+      </div>
+
+      <div id="reg-alert" class="alert alert-yellow" style="display: none;"></div>
+
+      <form id="prof-reg-form">
+        <div class="form-group">
+          <label class="form-label" for="fullName">Full Name with Title</label>
+          <input type="text" id="fullName" class="form-control" placeholder="e.g. Dr. Ada Lovelace" required>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="employeeId">Employee ID</label>
+            <input type="text" id="employeeId" class="form-control" placeholder="EMP-CSE-301" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="email">Institutional Email</label>
+            <input type="email" id="email" class="form-control" placeholder="ada.lovelace@examguard.edu" required>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="departmentId">Department</label>
+            <select id="departmentId" class="form-control" required>
+              <option value="">Select Department</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="designation">Academic Designation</label>
+            <input type="text" id="designation" class="form-control" placeholder="e.g. Associate Professor" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phoneNumber">Official Phone Number</label>
+          <input type="tel" id="phoneNumber" class="form-control" placeholder="+91 98765 00000">
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="password">Password</label>
+            <input type="password" id="password" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirmPassword">Confirm Password</label>
+            <input type="password" id="confirmPassword" class="form-control" placeholder="Repeat password" required>
+          </div>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-full btn-lg" style="margin-top: 1rem;">
+          Submit Faculty Registration
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem;">
+        Already registered? <a href="/login.html" style="font-weight: 600;">Sign in here</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    async function loadDepartments() {
+      try {
+        const depts = await apiRequest('/public/departments');
+        const sel = document.getElementById('departmentId');
+        depts.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.innerText = `${d.code} - ${d.name}`;
+          sel.appendChild(opt);
+        });
+      } catch (e) {
+        console.error('Failed to load departments', e);
+      }
+    }
+    loadDepartments();
+
+    document.getElementById('prof-reg-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pwd = document.getElementById('password').value;
+      const confirmPwd = document.getElementById('confirmPassword').value;
+      const alertBox = document.getElementById('reg-alert');
+
+      if (pwd !== confirmPwd) {
+        alertBox.innerText = 'Passwords do not match!';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      const body = {
+        fullName: document.getElementById('fullName').value.trim(),
+        employeeId: document.getElementById('employeeId').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        departmentId: parseInt(document.getElementById('departmentId').value),
+        designation: document.getElementById('designation').value.trim(),
+        phoneNumber: document.getElementById('phoneNumber').value.trim(),
+        password: pwd
+      };
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'Submitting...';
+      alertBox.style.display = 'none';
+
+      try {
+        await apiRequest('/auth/register/professor', 'POST', body);
+        showToast('Application submitted! Awaiting administrator approval.');
+        setTimeout(() => {
+          window.location.href = '/login.html';
+        }, 2000);
+      } catch (err) {
+        alertBox.innerText = err.message || 'Registration failed.';
+        alertBox.style.display = 'block';
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Submit Faculty Registration';
+      }
+    });
+  </script>
+</body>
+</html>
+

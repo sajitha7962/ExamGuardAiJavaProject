@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Approvals – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/admin-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI [ADMINISTRATION]
+    </a>
+    <a href="/admin-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/admin-dashboard.html">System Dashboard</a></li>
+          <li class="sidebar-nav-item active"><a href="/manage-professors.html">Approve Faculty</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-students.html">Manage Students</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-departments.html">Departments</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-subjects.html">Curriculum Subjects</a></li>
+          <li class="sidebar-nav-item"><a href="/admin-audit-logs.html">Audit Trail Logs</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Faculty Account Approvals & Gating</h1>
+          <p>Authorize university faculty credentials before they can create or publish live examination papers.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Faculty Name</th>
+                <th>Employee ID</th>
+                <th>Department</th>
+                <th>Designation</th>
+                <th>Institutional Email</th>
+                <th>Approval Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="professors-tbody">
+              <tr><td colspan="7" style="text-align: center;">Loading faculty accounts...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('ADMIN');
+    if (user) {
+      renderNavProfile(user);
+      loadFaculty();
+    }
+
+    async function loadFaculty() {
+      const tbody = document.getElementById('professors-tbody');
+      try {
+        const profs = await apiRequest('/admin/professors');
+        tbody.innerHTML = '';
+
+        if (!profs || profs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No faculty registrations found.</td></tr>';
+          return;
+        }
+
+        profs.forEach(p => {
+          const tr = document.createElement('tr');
+          const isPending = p.approvalStatus === 'PENDING';
+          tr.innerHTML = `
+            <td><strong>${p.user.fullName}</strong></td>
+            <td><code>${p.employeeId}</code></td>
+            <td><span class="badge badge-mint">${p.department.code}</span></td>
+            <td>${p.designation}</td>
+            <td>${p.user.email}</td>
+            <td><span class="badge ${p.approvalStatus === 'APPROVED' ? 'badge-primary' : (isPending ? 'badge-yellow' : 'badge-secondary')}">${p.approvalStatus}</span></td>
+            <td>
+              ${isPending ? `
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-primary btn-sm" onclick="decideFaculty(${p.id}, true)">Approve</button>
+                  <button class="btn btn-outline btn-sm" onclick="decideFaculty(${p.id}, false)">Reject</button>
+                </div>
+              ` : `
+                <button class="btn btn-outline btn-sm" onclick="toggleActive(${p.user.id})">
+                  ${p.user.active ? 'Deactivate' : 'Activate'}
+                </button>
+              `}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7">${e.message}</td></tr>`;
+      }
+    }
+
+    async function decideFaculty(profId, approved) {
+      try {
+        await apiRequest(`/admin/professors/${profId}/decide?approved=${approved}`, 'POST');
+        showToast(`Faculty registration ${approved ? 'approved' : 'rejected'}!`);
+        loadFaculty();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function toggleActive(userId) {
+      try {
+        await apiRequest(`/admin/users/${userId}/toggle-active`, 'POST');
+        showToast('Account status updated');
+        loadFaculty();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Examinations – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/create-exam.html" class="btn btn-warning btn-sm">+ New Examination</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/create-exam.html">Create Examination</a></li>
+          <li class="sidebar-nav-item active"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/question-bank.html">Question Bank</a></li>
+          <li class="sidebar-nav-item"><a href="/live-monitoring.html">Live Monitoring</a></li>
+          <li class="sidebar-nav-item"><a href="/proctoring-review.html">Proctoring Review</a></li>
+          <li class="sidebar-nav-item"><a href="/manual-evaluation.html">Manual Evaluation</a></li>
+          <li class="sidebar-nav-item"><a href="/professor-results.html">Exam Results</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Manage Scheduled Examinations</h1>
+          <p>Publish drafts, manage late entry authorizations, and launch live monitoring sessions.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Subject</th>
+                <th>Schedule Date</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th>Management Actions</th>
+              </tr>
+            </thead>
+            <tbody id="manage-exams-tbody">
+              <tr><td colspan="6" style="text-align: center;">Loading examinations...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    if (user) {
+      renderNavProfile(user);
+      loadExams();
+    }
+
+    async function loadExams() {
+      const tbody = document.getElementById('manage-exams-tbody');
+      try {
+        const exams = await apiRequest('/professor/exams');
+        tbody.innerHTML = '';
+
+        if (!exams || exams.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No examinations authored yet.</td></tr>';
+          return;
+        }
+
+        exams.forEach(e => {
+          const tr = document.createElement('tr');
+          const isDraft = e.status === 'DRAFT';
+          tr.innerHTML = `
+            <td><strong>${e.title}</strong></td>
+            <td><span class="badge badge-mint">${e.subjectCode}</span></td>
+            <td>${e.examDate} (${e.startTime})</td>
+            <td>${e.durationMinutes} mins</td>
+            <td><span class="badge ${isDraft ? 'badge-yellow' : 'badge-primary'}">${e.status}</span></td>
+            <td>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                ${isDraft ? `<button class="btn btn-primary btn-sm" onclick="publishExam(${e.id})">Publish</button>` : ''}
+                <a href="/live-monitoring.html?examId=${e.id}" class="btn btn-secondary btn-sm">Live Monitor</a>
+                <a href="/manual-evaluation.html?examId=${e.id}" class="btn btn-outline btn-sm">Evaluate</a>
+                <a href="/professor-results.html?examId=${e.id}" class="btn btn-warning btn-sm">Results</a>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6">${err.message}</td></tr>`;
+      }
+    }
+
+    async function publishExam(id) {
+      if (!confirm('Publish this examination paper? Eligible students will immediately be notified.')) return;
+      try {
+        await apiRequest(`/professor/exams/${id}/publish`, 'POST');
+        showToast('Examination published successfully!');
+        loadExams();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

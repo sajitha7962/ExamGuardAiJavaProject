@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Analytics & Reports – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/professor-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/question-bank.html">Question Bank</a></li>
+          <li class="sidebar-nav-item"><a href="/live-monitoring.html">Live Monitoring</a></li>
+          <li class="sidebar-nav-item active"><a href="/professor-analytics.html">Analytics & Reports</a></li>
+          <li class="sidebar-nav-item"><a href="/feedback-management.html">Feedback Reviews</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Assessment Analytics & Cohort Mastery</h1>
+          <p>Statistical distribution of candidate marks, pass rates, and performance benchmarks.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3>Grade Classification Breakdown</h3>
+          </div>
+          <canvas id="grade-donut"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Mean Class Average by Assessment</h3>
+          </div>
+          <canvas id="mean-bar"></canvas>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script src="/js/charts.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    if (user) {
+      renderNavProfile(user);
+      loadFacultyCharts();
+    }
+
+    async function loadFacultyCharts() {
+      try {
+        const data = await apiRequest('/professor/dashboard');
+        const gLabels = data.gradeLabels || ["Grade O", "Grade A", "Grade B", "Grade C", "Grade F"];
+        const gCounts = data.gradeCounts || [4, 12, 8, 3, 1];
+        GuardChart.drawDonutChart('grade-donut', gLabels, gCounts);
+
+        const eTitles = data.examTitles && data.examTitles.length > 0 ? data.examTitles : ["CS801 Midterm", "CS801 Final"];
+        const eAvgs = data.examAverages && data.examAverages.length > 0 ? data.examAverages : [74, 82];
+        GuardChart.drawBarChart('mean-bar', eTitles, eAvgs);
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

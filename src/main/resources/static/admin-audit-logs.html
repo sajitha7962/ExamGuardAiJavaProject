@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Audit Trail – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/admin-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI [ADMINISTRATION]
+    </a>
+    <a href="/admin-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/admin-dashboard.html">System Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-professors.html">Approve Faculty</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-students.html">Manage Students</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-departments.html">Departments</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-subjects.html">Curriculum Subjects</a></li>
+          <li class="sidebar-nav-item active"><a href="/admin-audit-logs.html">Audit Trail Logs</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>System Security Audit Logs</h1>
+          <p>Immutable event ledger of all authentication, proctoring, examination, and evaluation transactions.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Actor User</th>
+                <th>Action Type</th>
+                <th>Resource</th>
+                <th>Transaction Details</th>
+                <th>IP Source</th>
+              </tr>
+            </thead>
+            <tbody id="audit-tbody">
+              <tr><td colspan="6" style="text-align: center;">Loading audit logs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('ADMIN');
+    if (user) {
+      renderNavProfile(user);
+      loadAuditLogs();
+    }
+
+    async function loadAuditLogs() {
+      const tbody = document.getElementById('audit-tbody');
+      try {
+        const logs = await apiRequest('/admin/audit-logs');
+        tbody.innerHTML = '';
+
+        if (!logs || logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No audit entries logged yet.</td></tr>';
+          return;
+        }
+
+        logs.forEach(l => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><small>${l.timestamp ? l.timestamp.replace('T', ' ').substring(0, 19) : ''}</small></td>
+            <td><strong>${l.user ? l.user.fullName : 'SYSTEM'}</strong><br><small style="color:var(--text-muted);">${l.user ? l.user.email : ''}</small></td>
+            <td><span class="badge badge-mint">${l.action}</span></td>
+            <td><span class="badge badge-primary">${l.resourceType} #${l.resourceId || ''}</span></td>
+            <td>${l.details || ''}</td>
+            <td><code>${l.ipAddress || 'INTERNAL'}</code></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6">${err.message}</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>
+

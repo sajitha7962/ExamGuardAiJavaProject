@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assigned Students – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/professor-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item active"><a href="/professor-students.html">My Students</a></li>
+          <li class="sidebar-nav-item"><a href="/professor-profile.html">Faculty Profile</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Department Enrolled Students</h1>
+          <p>Search, filter, and inspect registered candidates in your department.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Candidate Name</th>
+                <th>Register No</th>
+                <th>Department</th>
+                <th>Year & Section</th>
+                <th>College Email</th>
+                <th>Face Status</th>
+              </tr>
+            </thead>
+            <tbody id="students-tbody">
+              <tr><td colspan="6" style="text-align: center;">Loading students...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    if (user) {
+      renderNavProfile(user);
+      loadStudents();
+    }
+
+    async function loadStudents() {
+      const tbody = document.getElementById('students-tbody');
+      try {
+        const students = await apiRequest('/professor/students');
+        tbody.innerHTML = '';
+
+        if (!students || students.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No students enrolled currently.</td></tr>';
+          return;
+        }
+
+        students.forEach(s => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${s.user.fullName}</strong></td>
+            <td><code>${s.registerNumber}</code></td>
+            <td><span class="badge badge-mint">${s.department.code}</span></td>
+            <td>Year ${s.currentYear} - Sec ${s.section}</td>
+            <td>${s.user.email}</td>
+            <td><span class="badge badge-primary">Enrolled</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6">${e.message}</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>
+

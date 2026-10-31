@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examination Feedback – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/student-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/student-dashboard.html" class="btn btn-warning btn-sm">Skip to Dashboard</a>
+  </nav>
+
+  <div style="max-width: 680px; margin: 3rem auto; padding: 0 1.5rem;">
+    <div class="card">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <span class="badge badge-mint" style="margin-bottom: 0.5rem;">POST-EXAMINATION SURVEY</span>
+        <h2>Candidate Examination Feedback</h2>
+        <p style="color: var(--text-sub); font-size: 0.9rem;">Your feedback helps academic departments calibrate assessment difficulty and platform reliability.</p>
+      </div>
+
+      <form id="feedback-form">
+        <!-- Q1: Difficulty -->
+        <div class="form-group">
+          <label class="form-label">1. How difficult was the examination?</label>
+          <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem;">
+            <label><input type="radio" name="difficulty" value="1"> 1 (Very Easy)</label>
+            <label><input type="radio" name="difficulty" value="2"> 2 (Easy)</label>
+            <label><input type="radio" name="difficulty" value="3" checked> 3 (Moderate)</label>
+            <label><input type="radio" name="difficulty" value="4"> 4 (Challenging)</label>
+            <label><input type="radio" name="difficulty" value="5"> 5 (Very Hard)</label>
+          </div>
+        </div>
+
+        <!-- Q2: Clarity -->
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label class="form-label">2. Were the question formulations clear and unambiguous?</label>
+          <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem;">
+            <label><input type="radio" name="clarity" value="1"> 1 (Unclear)</label>
+            <label><input type="radio" name="clarity" value="2"> 2</label>
+            <label><input type="radio" name="clarity" value="3"> 3</label>
+            <label><input type="radio" name="clarity" value="4" checked> 4</label>
+            <label><input type="radio" name="clarity" value="5"> 5 (Crystal Clear)</label>
+          </div>
+        </div>
+
+        <!-- Q3: Time Sufficiency -->
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label class="form-label">3. Was the allocated duration sufficient for all questions?</label>
+          <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem;">
+            <label><input type="radio" name="time" value="1"> 1 (Far Too Short)</label>
+            <label><input type="radio" name="time" value="2"> 2</label>
+            <label><input type="radio" name="time" value="3"> 3</label>
+            <label><input type="radio" name="time" value="4" checked> 4</label>
+            <label><input type="radio" name="time" value="5"> 5 (Ample Time)</label>
+          </div>
+        </div>
+
+        <!-- Q4: Platform Reliability -->
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label class="form-label">4. Did the examination software work smoothly and reliably?</label>
+          <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem;">
+            <label><input type="radio" name="platform" value="1"> 1 (Frequent Errors)</label>
+            <label><input type="radio" name="platform" value="2"> 2</label>
+            <label><input type="radio" name="platform" value="3"> 3</label>
+            <label><input type="radio" name="platform" value="4"> 4</label>
+            <label><input type="radio" name="platform" value="5" checked> 5 (Flawless)</label>
+          </div>
+        </div>
+
+        <!-- Q5: Technical Issues -->
+        <div class="form-group" style="margin-top: 1.5rem;">
+          <label class="form-check">
+            <input type="checkbox" id="tech-issues">
+            <span style="font-weight: 600; color: var(--deep-teal);">I encountered technical problems or network lag during this exam session.</span>
+          </label>
+        </div>
+
+        <!-- Q6: Suggestions -->
+        <div class="form-group" style="margin-top: 1rem;">
+          <label class="form-label" for="suggestions">Additional suggestions or feedback for the faculty:</label>
+          <textarea id="suggestions" class="form-control" rows="3" placeholder="Optional comments..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 1.5rem;">
+          Submit Examination Feedback
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('STUDENT');
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId') || '1';
+
+    document.getElementById('feedback-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const getRadioVal = name => parseInt(document.querySelector(`input[name="${name}"]:checked`).value);
+
+      const body = {
+        examId: parseInt(examId),
+        difficultyRating: getRadioVal('difficulty'),
+        clarityRating: getRadioVal('clarity'),
+        timeSufficiencyRating: getRadioVal('time'),
+        platformRating: getRadioVal('platform'),
+        technicalIssuesReported: document.getElementById('tech-issues').checked,
+        suggestions: document.getElementById('suggestions').value.trim()
+      };
+
+      try {
+        await apiRequest('/student/exams/feedback', 'POST', body);
+        showToast('Feedback submitted successfully. Thank you!');
+        setTimeout(() => {
+          window.location.href = '/student-dashboard.html';
+        }, 1200);
+      } catch (err) {
+        showToast(err.message, true);
+        setTimeout(() => {
+          window.location.href = '/student-dashboard.html';
+        }, 2000);
+      }
+    });
+  </script>
+</body>
+</html>
+

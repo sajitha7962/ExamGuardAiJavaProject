@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Examinations – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/student-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/student-dashboard.html" class="btn btn-warning btn-sm">Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/student-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/available-exams.html">Available Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/face-registration.html">Face Registration</a></li>
+          <li class="sidebar-nav-item active"><a href="/my-examinations.html">My Examinations</a></li>
+          <li class="sidebar-nav-item"><a href="/student-results.html">Exam Results</a></li>
+          <li class="sidebar-nav-item"><a href="/student-profile.html">My Profile</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>My Examination History</h1>
+          <p>Review submitted assessments, attempt records, and publication statuses.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Subject & Exam Title</th>
+                <th>Exam Date</th>
+                <th>Duration</th>
+                <th>Submission Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="my-exams-body">
+              <tr><td colspan="5" style="text-align: center;">Loading examination history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('STUDENT');
+    if (user) {
+      renderNavProfile(user);
+      loadHistory();
+    }
+
+    async function loadHistory() {
+      const tbody = document.getElementById('my-exams-body');
+      try {
+        const exams = await apiRequest('/student/available-exams');
+        tbody.innerHTML = '';
+
+        const completed = exams.filter(e => e.attemptStatus === 'SUBMITTED' || e.attemptStatus === 'EVALUATED');
+        if (completed.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No completed examinations yet.</td></tr>';
+          return;
+        }
+
+        completed.forEach(e => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>
+              <strong>${e.title}</strong><br>
+              <small style="color: var(--text-sub);">${e.subjectCode} - ${e.subjectName}</small>
+            </td>
+            <td>${e.examDate}</td>
+            <td>${e.durationMinutes} mins</td>
+            <td><span class="badge badge-mint">${e.attemptStatus}</span></td>
+            <td>
+              <a href="/student-results.html?examId=${e.id}" class="btn btn-primary btn-sm">View Result</a>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">${e.message}</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>
+

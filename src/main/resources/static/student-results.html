@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examination Result – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    @media print {
+      .navbar, .sidebar, .btn, .no-print { display: none !important; }
+      .dashboard-wrapper { display: block !important; }
+      .main-content { padding: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/student-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/student-dashboard.html" class="btn btn-warning btn-sm no-print">Return to Dashboard</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar no-print">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/student-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/available-exams.html">Available Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/face-registration.html">Face Registration</a></li>
+          <li class="sidebar-nav-item"><a href="/my-examinations.html">My Examinations</a></li>
+          <li class="sidebar-nav-item active"><a href="/student-results.html">Exam Results</a></li>
+          <li class="sidebar-nav-item"><a href="/student-profile.html">My Profile</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header no-print">
+        <div class="header-title">
+          <h1>Official Examination Result</h1>
+          <p>Audited performance scorecard and detailed question evaluation.</p>
+        </div>
+        <button class="btn btn-primary" onclick="window.print()">
+          Print / Save as PDF
+        </button>
+      </div>
+
+      <div id="result-view">
+        <p style="color: var(--text-muted);">Loading result...</p>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('STUDENT');
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId') || '1';
+
+    if (user) {
+      renderNavProfile(user);
+      loadResult();
+    }
+
+    async function loadResult() {
+      const container = document.getElementById('result-view');
+      try {
+        const res = await apiRequest(`/student/exams/${examId}/results`);
+
+        container.innerHTML = `
+          <!-- Scorecard Summary -->
+          <div class="card" style="border-top: 4px solid var(--deep-teal);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid var(--mint-green); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+              <div>
+                <span class="badge badge-mint">${res.subjectCode}</span>
+                <h2 style="margin-top: 0.35rem;">${res.examTitle}</h2>
+                <p style="color: var(--text-sub); margin: 0;">${res.subjectName} &bull; ${res.departmentName}</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Candidate: <strong>${res.studentName}</strong> (${res.registerNumber})</p>
+              </div>
+              <div style="text-align: right;">
+                <span class="badge ${res.passFailStatus === 'PASS' ? 'badge-primary' : 'badge-yellow'}" style="font-size: 1rem; padding: 0.4rem 1rem;">
+                  ${res.passFailStatus}
+                </span>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Class Rank: #${res.classRank || 1}</div>
+              </div>
+            </div>
+
+            <div class="grid-4" style="margin-bottom: 1.5rem;">
+              <div class="stat-card">
+                <div class="stat-title">Marks Obtained</div>
+                <div class="stat-value">${res.totalMarksObtained} / ${res.maximumMarks}</div>
+              </div>
+              <div class="stat-card ocean">
+                <div class="stat-title">Percentage</div>
+                <div class="stat-value">${res.percentage}%</div>
+              </div>
+              <div class="stat-card mint">
+                <div class="stat-title">Letter Grade</div>
+                <div class="stat-value">${res.grade}</div>
+              </div>
+              <div class="stat-card yellow">
+                <div class="stat-title">Evaluation Date</div>
+                <div class="stat-value" style="font-size: 1.15rem; padding-top: 0.5rem;">${res.publishedAt ? res.publishedAt.substring(0, 10) : 'Official'}</div>
+              </div>
+            </div>
+
+            ${res.professorRemarks ? `<div class="alert alert-teal"><strong>Professor Remarks:</strong> ${res.professorRemarks}</div>` : ''}
+          </div>
+
+          <!-- Question-wise Breakdown -->
+          <div class="card" style="margin-top: 2rem;">
+            <div class="card-header">
+              <h3>Question-wise Score & Feedback Breakdown</h3>
+            </div>
+            <div id="questions-breakdown-list"></div>
+          </div>
+        `;
+
+        const list = document.getElementById('questions-breakdown-list');
+        res.questionDetails.forEach((qd, idx) => {
+          const item = document.createElement('div');
+          item.style.borderBottom = '1px solid var(--mint-green)';
+          item.style.padding = '1.25rem 0';
+          item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <strong>Question ${idx + 1} (${qd.questionType})</strong>
+              <span class="badge ${qd.marksObtained > 0 ? 'badge-mint' : 'badge-yellow'}">Score: ${qd.marksObtained} / ${qd.maxMarks}</span>
+            </div>
+            <p style="color: var(--deep-teal); font-weight: 500; margin-bottom: 0.75rem;">${qd.questionText}</p>
+            <div style="background-color: var(--mint-green-light); padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: 0.88rem; display: flex; flex-direction: column; gap: 0.25rem;">
+              <div><strong>Your Recorded Answer:</strong> ${qd.studentAnswer || '<em style="color:var(--text-muted)">Unanswered</em>'}</div>
+              <div><strong>Correct Solution / Key:</strong> ${qd.correctAnswer || 'See Explanation'}</div>
+              ${qd.explanation ? `<div><strong>Explanation:</strong> ${qd.explanation}</div>` : ''}
+              ${qd.professorComment ? `<div><strong>Evaluator Note:</strong> ${qd.professorComment}</div>` : ''}
+            </div>
+          `;
+          list.appendChild(item);
+        });
+
+      } catch (err) {
+        container.innerHTML = `
+          <div class="card">
+            <div class="alert alert-yellow">
+              <strong>Notice:</strong> ${err.message || 'Results have not yet been published by the faculty.'}
+            </div>
+            <a href="/my-examinations.html" class="btn btn-primary btn-sm">Back to Examinations</a>
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
+

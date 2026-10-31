@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    .auth-container {
+      max-width: 460px;
+      margin: 4rem auto;
+      padding: 0 1rem;
+    }
+    .role-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--mint-green);
+      margin-bottom: 1.5rem;
+    }
+    .role-tab {
+      flex: 1;
+      text-align: center;
+      padding: 0.75rem 0.5rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      color: var(--deep-teal);
+      border-bottom: 3px solid transparent;
+      transition: var(--transition);
+    }
+    .role-tab.active {
+      border-bottom-color: var(--deep-teal);
+      background-color: var(--mint-green-light);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <a href="/index.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <ul class="nav-menu">
+      <li><a href="/index.html" class="nav-link">Home</a></li>
+      <li><a href="/student-register.html" class="nav-link">Register Student</a></li>
+      <li><a href="/professor-register.html" class="nav-link">Register Professor</a></li>
+    </ul>
+  </nav>
+
+  <div class="auth-container">
+    <div class="card" style="box-shadow: var(--shadow-hover);">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <h2 style="margin-bottom: 0.35rem;">Portal Authentication</h2>
+        <p style="color: var(--text-sub); font-size: 0.9rem;">Sign in to your ExamGuard AI account</p>
+      </div>
+
+      <!-- Role Tabs -->
+      <div class="role-tabs">
+        <div class="role-tab active" onclick="switchRole('STUDENT')">Student</div>
+        <div class="role-tab" onclick="switchRole('PROFESSOR')">Professor</div>
+        <div class="role-tab" onclick="switchRole('ADMIN')">Admin</div>
+      </div>
+
+      <div id="login-alert" class="alert alert-yellow" style="display: none;"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">College Email Address</label>
+          <input type="email" id="email" class="form-control" placeholder="name@examguard.edu" required>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <label class="form-label" for="password" style="margin: 0;">Password</label>
+            <a href="/forgot-password.html" style="font-size: 0.8rem;">Forgot password?</a>
+          </div>
+          <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-full btn-lg" style="margin-top: 1rem;">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Quick Demo Fill -->
+      <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--mint-green); text-align: center;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Quick Demo Fill:</span>
+        <button type="button" class="btn btn-warning btn-sm" onclick="fillDemo()">
+          Load Demo <span id="demo-role-label">Student</span> Account
+        </button>
+      </div>
+
+      <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem;">
+        New student? <a href="/student-register.html" style="font-weight: 600;">Register here</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    let activeRole = 'STUDENT';
+
+    function switchRole(role) {
+      activeRole = role;
+      document.querySelectorAll('.role-tab').forEach((tab, idx) => {
+        tab.classList.toggle('active', 
+          (role === 'STUDENT' && idx === 0) ||
+          (role === 'PROFESSOR' && idx === 1) ||
+          (role === 'ADMIN' && idx === 2)
+        );
+      });
+      document.getElementById('demo-role-label').innerText = role.charAt(0) + role.slice(1).toLowerCase();
+      fillDemo();
+    }
+
+    function fillDemo() {
+      if (activeRole === 'STUDENT') {
+        document.getElementById('email').value = 'student.alex@examguard.edu';
+        document.getElementById('password').value = 'Student@123';
+      } else if (activeRole === 'PROFESSOR') {
+        document.getElementById('email').value = 'prof.smith@examguard.edu';
+        document.getElementById('password').value = 'Prof@123';
+      } else if (activeRole === 'ADMIN') {
+        document.getElementById('email').value = 'admin@examguard.edu';
+        document.getElementById('password').value = 'Admin@123';
+      }
+    }
+
+    // Default fill student on load
+    fillDemo();
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('submit-btn');
+      const alertBox = document.getElementById('login-alert');
+
+      btn.disabled = true;
+      btn.innerText = 'Authenticating...';
+      alertBox.style.display = 'none';
+
+      try {
+        const data = await apiRequest('/auth/login', 'POST', { email, password });
+        Session.setUser(data.token, data);
+
+        showToast('Login successful! Redirecting...');
+        setTimeout(() => {
+          if (data.role === 'ADMIN') window.location.href = '/admin-dashboard.html';
+          else if (data.role === 'PROFESSOR') window.location.href = '/professor-dashboard.html';
+          else window.location.href = '/student-dashboard.html';
+        }, 800);
+      } catch (err) {
+        alertBox.innerText = err.message || 'Login failed. Please check your credentials.';
+        alertBox.style.display = 'block';
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>
+

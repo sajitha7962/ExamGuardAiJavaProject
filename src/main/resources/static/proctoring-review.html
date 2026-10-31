@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proctoring Audit & Incident Review – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/professor-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/live-monitoring.html" class="btn btn-warning btn-sm">Live Monitoring</a>
+  </nav>
+
+  <div class="dashboard-wrapper">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-header" id="user-profile-badge"></div>
+        <ul class="sidebar-nav">
+          <li class="sidebar-nav-item"><a href="/professor-dashboard.html">Dashboard</a></li>
+          <li class="sidebar-nav-item"><a href="/manage-exams.html">Manage Exams</a></li>
+          <li class="sidebar-nav-item"><a href="/live-monitoring.html">Live Monitoring</a></li>
+          <li class="sidebar-nav-item active"><a href="/proctoring-review.html">Proctoring Review</a></li>
+          <li class="sidebar-nav-item"><a href="/manual-evaluation.html">Manual Evaluation</a></li>
+          <li class="sidebar-nav-item"><a href="/professor-results.html">Exam Results</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="page-header">
+        <div class="header-title">
+          <h1>Proctoring Incident Audit Trail</h1>
+          <p>Review flagged candidate anomalies, evaluate evidence, and dismiss or escalate incidents.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Candidate</th>
+                <th>Incident Type</th>
+                <th>Severity</th>
+                <th>Telemetry Description</th>
+                <th>Review Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="incidents-tbody">
+              <tr><td colspan="7" style="text-align: center;">Loading proctoring event logs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('PROFESSOR');
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId') || '1';
+
+    if (user) {
+      renderNavProfile(user);
+      loadIncidents();
+    }
+
+    async function loadIncidents() {
+      const tbody = document.getElementById('incidents-tbody');
+      try {
+        const events = await apiRequest(`/professor/exams/${examId}/events`);
+        tbody.innerHTML = '';
+
+        if (!events || events.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No proctoring violations or alerts logged for this paper.</td></tr>';
+          return;
+        }
+
+        events.forEach(ev => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><small>${ev.timestamp ? ev.timestamp.replace('T', ' ').substring(0, 16) : ''}</small></td>
+            <td><strong>${ev.student ? ev.student.user.fullName : 'Candidate'}</strong><br><small>${ev.student ? ev.student.registerNumber : ''}</small></td>
+            <td><span class="badge badge-mint">${ev.eventType}</span></td>
+            <td><span class="badge ${ev.severity === 'HIGH' ? 'badge-yellow' : 'badge-primary'}">${ev.severity}</span></td>
+            <td>${ev.description}</td>
+            <td><span class="badge badge-secondary">${ev.reviewStatus}</span></td>
+            <td>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="btn btn-outline btn-sm" onclick="reviewIncident(${ev.id}, 'REVIEWED')">Dismiss</button>
+                <button class="btn btn-warning btn-sm" onclick="reviewIncident(${ev.id}, 'ESCALATED')">Escalate</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7">${err.message}</td></tr>`;
+      }
+    }
+
+    async function reviewIncident(id, status) {
+      try {
+        await apiRequest(`/professor/events/${id}/review?status=${status}&notes=AuditedByFaculty`, 'POST');
+        showToast(`Incident status updated to ${status}.`);
+        loadIncidents();
+      } catch (e) {
+        showToast(e.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
+

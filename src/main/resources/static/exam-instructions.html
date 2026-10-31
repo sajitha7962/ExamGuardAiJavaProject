@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examination Instructions & Readiness – ExamGuard AI</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="/student-dashboard.html" class="nav-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+      ExamGuard AI
+    </a>
+    <a href="/available-exams.html" class="btn btn-warning btn-sm">Cancel & Return</a>
+  </nav>
+
+  <div style="max-width: 900px; margin: 3rem auto; padding: 0 1.5rem;">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; border-bottom: 2px solid var(--mint-green); padding-bottom: 1rem;">
+        <div>
+          <span class="badge badge-mint" style="margin-bottom: 0.5rem;" id="subject-code-badge">EXAMINATION</span>
+          <h1 id="exam-title">Loading examination...</h1>
+          <p id="exam-meta" style="color: var(--text-sub); margin: 0;"></p>
+        </div>
+      </div>
+
+      <!-- Instructions Section -->
+      <div style="margin-bottom: 2rem;">
+        <h3>Candidate Instructions & Regulations</h3>
+        <div id="instructions-text" style="background-color: var(--mint-green-light); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--mint-green); margin-top: 0.75rem; font-size: 0.95rem; line-height: 1.7; white-space: pre-line;">
+          1. Continuous webcam proctoring is enforced. Ensure your face is centered and illuminated.
+          2. Fullscreen mode will be requested. Exiting fullscreen logs a proctoring incident.
+          3. Tab switching, minimization, or auxiliary window focus will trigger automatic warnings.
+          4. Answers are persistently synchronized with the college server on every selection.
+        </div>
+      </div>
+
+      <!-- System Readiness Checklist -->
+      <div style="margin-bottom: 2rem;">
+        <h3>System Readiness Checklist</h3>
+        <div class="grid-2" style="margin-top: 1rem;">
+          <div class="stat-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong>Webcam Permission</strong>
+              <span id="chk-cam" class="badge badge-yellow">Pending Check</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong>Face Biometric Identity</strong>
+              <span id="chk-face" class="badge badge-yellow">Pending Check</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong>Fullscreen & Display API</strong>
+              <span id="chk-full" class="badge badge-mint">Ready</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong>Server Network Latency</strong>
+              <span id="chk-net" class="badge badge-mint">&lt; 35ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Candidate Acknowledgement -->
+      <div style="background-color: var(--soft-yellow-light); border: 1.5px solid var(--soft-yellow-dark); padding: 1.25rem; border-radius: var(--radius-sm); margin-bottom: 2rem;">
+        <label class="form-check" style="margin: 0; align-items: flex-start;">
+          <input type="checkbox" id="ack-check" style="margin-top: 4px;">
+          <span style="font-size: 0.9rem; color: var(--deep-teal); font-weight: 600;">
+            I confirm that I am taking this examination independently without unauthorized aids, third-party communication, or dual monitors. I acknowledge that proctoring alerts will be recorded and audited by university faculty.
+          </span>
+        </label>
+      </div>
+
+      <button id="launch-btn" class="btn btn-primary btn-full btn-lg" onclick="launchExam()">
+        Enter Examination Room
+      </button>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const user = Session.requireRole('STUDENT');
+    const urlParams = new URLSearchParams(window.location.search);
+    const examId = urlParams.get('examId') || '1';
+
+    async function initChecklist() {
+      try {
+        const exam = await apiRequest(`/student/exams/${examId}`);
+        document.getElementById('exam-title').innerText = exam.title;
+        document.getElementById('subject-code-badge').innerText = exam.subject.code;
+        document.getElementById('exam-meta').innerText = `${exam.subject.name} | Duration: ${exam.durationMinutes} mins | Total Marks: ${exam.totalMarks}`;
+        if (exam.instructions) {
+          document.getElementById('instructions-text').innerText = exam.instructions;
+        }
+
+        // Camera check
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          document.getElementById('chk-cam').innerText = 'Compatible';
+          document.getElementById('chk-cam').className = 'badge badge-mint';
+        }
+
+        // Face enrollment check
+        if (user.isFaceRegistered) {
+          document.getElementById('chk-face').innerText = 'Registered';
+          document.getElementById('chk-face').className = 'badge badge-mint';
+        } else {
+          document.getElementById('chk-face').innerText = 'Action Needed';
+          document.getElementById('chk-face').className = 'badge badge-yellow';
+        }
+
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    initChecklist();
+
+    function launchExam() {
+      if (!document.getElementById('ack-check').checked) {
+        showToast('Please check the acknowledgement box to enter.', true);
+        return;
+      }
+      window.location.href = `/exam-room.html?examId=${examId}`;
+    }
+  </script>
+</body>
+</html>
+
