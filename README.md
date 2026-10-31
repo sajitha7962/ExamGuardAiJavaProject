@@ -10,16 +10,6 @@ ExamGuard AI is a full-stack smart examination and automated proctoring platform
 
 ---
 
-## 🎨 Strict Four-Color Design System
-
-The application strictly adheres to the approved four-color palette with zero third-party framework themes (no Bootstrap, Tailwind, or arbitrary styling):
-
-* **Primary Deep Teal (`#287A74`)**: Main navigation, sidebar headers, primary action buttons, brand emblems.
-* **Secondary Ocean Teal (`#55A9A0`)**: Secondary buttons, hover states, chart accents, section highlights.
-* **Mint Green (`#AEEED3`)**: Dashboard backgrounds, cards, form inputs, answered palette states, success indicators.
-* **Soft Yellow (`#FFF8B0`)**: Incident alerts, proctoring warnings, pending approval notices, marked-for-review tags.
-
----
 
 ## 🚀 Key Features by User Role
 
