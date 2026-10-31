@@ -102,3 +102,4 @@ Complete quality verification records are documented in the repository:
 * [BUG_REPORT.md](BUG_REPORT.md) – Log of all 10 discovered and resolved bugs.
 * [API_TEST_REPORT.md](API_TEST_REPORT.md) – Complete catalog of 53 REST endpoints and WebSocket protocols.
 * [SECURITY_TEST_REPORT.md](SECURITY_TEST_REPORT.md) – OWASP Top 10 evaluation, IDOR defenses, and biometric privacy audit.
+
